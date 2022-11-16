@@ -1,0 +1,10 @@
+{
+    "bot_token": "5636193919:AAEQwB3Y-vMcfqBJYvdarvqToQzZyrupye8",
+    "chat_to_write_name": "test_channel_for_PS_bot",
+    "create_command_url": "http://PSDB:8080/create",
+    "show_window_command_url": "http://PSDB:8080/show_window",
+    "show_object_command_url": "http://PSDB:8080/show_object",
+    "show_window_sort_command_url": "http://PSDB:8080/show_window_sort",
+    "add_window_command_url": "http://PSDB:8080/add_window",
+    "show_window_all_command_url": "http://PSDB:8080/show_window_all"
+}
