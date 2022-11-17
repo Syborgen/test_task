@@ -2,7 +2,7 @@ package main
 
 import (
 	"PSTelegram/bothandler"
-	commandspkg "PSTelegram/commands"
+	cmdpkg "PSTelegram/commands"
 	"fmt"
 )
 
@@ -25,32 +25,37 @@ func main() {
 	botHandler.Start()
 }
 
-func initCommands(configFileName string) (map[string]commandspkg.Command, error) {
-	commands := make(map[string]commandspkg.Command)
+func initCommands(configFileName string) (map[string]cmdpkg.Command, error) {
+	commands := make(map[string]cmdpkg.Command)
 
-	cfg, err := commandspkg.CreateConfigFromFile(configFileName)
+	cfg, err := cmdpkg.CreateConfigFromFile(configFileName)
 	if err != nil {
 		return nil, fmt.Errorf("create config error: %w", err)
 	}
 
-	createCommand := commandspkg.NewCreateCommand()
+	createCommand := cmdpkg.NewCreateCommand()
 	createCommand.CommandURL = cfg.CreateCommandURL
-	commands[commandspkg.CreateCommandCallName] = createCommand
+	commands[cmdpkg.CreateCommandCallName] = createCommand
 
-	addWindowCommand := commandspkg.NewAddWindowCommand()
+	addWindowCommand := cmdpkg.NewAddWindowCommand()
 	addWindowCommand.CommandURL = cfg.AddWindowCommandURL
-	commands[commandspkg.AddWindowCommandCallName] = addWindowCommand
+	commands[cmdpkg.AddWindowCommandCallName] = addWindowCommand
 
-	showObjectCommand := commandspkg.NewShowObjectCommand()
+	showObjectCommand := cmdpkg.NewShowObjectCommand()
 	showObjectCommand.CommandURL = cfg.ShowObjectCommandURL
-	commands[commandspkg.ShowObjectCommandCallName] = showObjectCommand
+	commands[cmdpkg.ShowObjectCommandCallName] = showObjectCommand
 
-	showWindowCommand := commandspkg.NewShowWindowCommand()
+	showWindowCommand := cmdpkg.NewShowWindowCommand()
 	showWindowCommand.CommandURL = cfg.ShowWindowCommandURL
-	commands[commandspkg.ShowWindowCommandCallName] = showWindowCommand
+	commands[cmdpkg.ShowWindowCommandCallName] = showWindowCommand
 
-	showWindowSortCommand := commandspkg.NewShowWindowSortCommand()
+	showWindowSortCommand := cmdpkg.NewShowWindowSortCommand()
 	showWindowSortCommand.CommandURL = cfg.ShowWindowSortCommandURL
-	commands[commandspkg.ShowWindowSortCommandCallName] = showWindowSortCommand
+	commands[cmdpkg.ShowWindowSortCommandCallName] = showWindowSortCommand
+
+	showWindowAllCommand := cmdpkg.NewShowWindowAllCommand()
+	showWindowAllCommand.CommandURL = cfg.ShowWindowAllCommandURL
+	commands[cmdpkg.ShowWindowAllCommandCallName] = showWindowAllCommand
+
 	return commands, nil
 }

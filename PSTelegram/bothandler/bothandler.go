@@ -42,7 +42,7 @@ func New(configFileName string, commands map[string]commands.Command) (*BotHandl
 	}
 
 	for _, command := range commands {
-		command.SetExecutor(bot)
+		command.SetBotApi(bot)
 		command.SetChatToWrite(&chatToWrite)
 	}
 

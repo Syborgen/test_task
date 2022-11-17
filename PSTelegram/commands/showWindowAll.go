@@ -15,12 +15,12 @@ type ShowWindowAllCommand struct {
 	StructureOfCommand
 }
 
-const ShowWindowAllCommandCallName = "show_window"
+const ShowWindowAllCommandCallName = "show_window_all"
 
-func NewShowWindowAllCommand() *ShowWindowCommand {
-	return &ShowWindowCommand{
+func NewShowWindowAllCommand() *ShowWindowAllCommand {
+	return &ShowWindowAllCommand{
 		StructureOfCommand: StructureOfCommand{
-			CallName: ShowWindowCommandCallName,
+			CallName: ShowWindowAllCommandCallName,
 		},
 	}
 }

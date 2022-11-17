@@ -18,6 +18,11 @@ func ShowWindowHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, techWindows)
 }
 
+func ShowWindowAllHandler(c *gin.Context) {
+	techWindows := GetTechWindowsAll()
+	c.JSON(http.StatusOK, techWindows)
+}
+
 func ShowWindowSortHandler(c *gin.Context) {
 	sort := c.Query("sort")
 	start := c.Query("start")

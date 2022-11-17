@@ -12,6 +12,7 @@ type config struct {
 	ShowObjectCommandURL     string `json:"show_object_command_url"`
 	ShowWindowCommandURL     string `json:"show_window_command_url"`
 	ShowWindowSortCommandURL string `json:"show_window_sort_command_url"`
+	ShowWindowAllCommandURL  string `json:"show_window_all_command_url"`
 }
 
 func CreateConfigFromFile(fileName string) (cfg config, err error) {

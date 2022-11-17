@@ -1,9 +1,6 @@
-# sudo docker compose up --build
-version: '3.1'
+version: '3.9'
 services:
 
-  # to connect to db execute:
-  #   sudo docker exec -it -u postgres test_task-postgres-1 psql
   postgres:
     image: postgres:14.5
     environment:
@@ -12,7 +9,10 @@ services:
       POSTGRES_PASSWORD: "1234"
     ports:
       - "55432:5432"
-  
+    volumes:
+      - .:/docker-entrypoint-initdb.d
+      - ./postgres-data:/var/lib/postgresql/data
+
   PSTelegram:
     image: docker-pstelegram
     build: PSTelegram/

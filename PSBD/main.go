@@ -18,6 +18,7 @@ func main() {
 	router.GET("/show_object", commands.ShowObjectHandler)
 	router.GET("/show_window", commands.ShowWindowHandler)
 	router.GET("/show_window_sort", commands.ShowWindowSortHandler)
+	router.GET("/show_window_all", commands.ShowWindowAllHandler)
 	router.POST("/add_window", commands.AddWindowHandler)
 	router.POST("/create", commands.CreateHandler)
 

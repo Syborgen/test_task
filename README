@@ -1,0 +1,9 @@
+Для того, чтобы система заработала необходимо иметь на комьютере:
+    1. docker (https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04)
+    2. docker compose v2 (https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04)
+
+Для того, чтобы развернуть всю систему нужно ввести команду 
+    sudo docker compose up --build
+
+Также можно подключится непосредственно к базе. Это можно сделать только когда контейнер запущен. Команда:
+    sudo docker exec -it -u postgres test_task-postgres-1 psql

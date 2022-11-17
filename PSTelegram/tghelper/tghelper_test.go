@@ -2,33 +2,6 @@ package tghelper
 
 import "testing"
 
-func TestIsDate(t *testing.T) {
-	testCases := []struct {
-		input    string
-		expected bool
-	}{
-		{
-			input:    "123",
-			expected: false,
-		},
-		{
-			input:    "aa",
-			expected: false,
-		},
-		{
-			input:    "2022-12-05",
-			expected: true,
-		},
-	}
-
-	for _, testCase := range testCases {
-		actual := isDate(testCase.input)
-		if actual != testCase.expected {
-			t.Errorf("Expected: %v, actual: %v", testCase.expected, actual)
-		}
-	}
-}
-
 func TestParseArguments(t *testing.T) {
 	testCases := []struct {
 		input    string
@@ -43,12 +16,16 @@ func TestParseArguments(t *testing.T) {
 			expected: []string{"one", "two", "three"},
 		},
 		{
-			input:    "2022-12-05 11:43:66 two",
+			input:    "'2022-12-05 11:43:66' two",
 			expected: []string{"2022-12-05 11:43:66", "two"},
 		},
 		{
-			input:    "one two 2022-12-05 11:43:66 2022-12-05 11:43:66",
+			input:    "one two '2022-12-05 11:43:66' '2022-12-05 11:43:66'",
 			expected: []string{"one", "two", "2022-12-05 11:43:66", "2022-12-05 11:43:66"},
+		},
+		{
+			input:    "one two '2022-12-05 11:43:66' '2022-12-05 11:43:66' 'incorrect s",
+			expected: []string{"one", "two", "2022-12-05 11:43:66", "2022-12-05 11:43:66", "incorrect", "s"},
 		},
 	}
 

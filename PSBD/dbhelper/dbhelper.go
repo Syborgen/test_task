@@ -2,8 +2,10 @@ package dbhelper
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var DB *sql.DB
@@ -17,31 +19,115 @@ const (
 )
 
 type Object struct {
-	Id    int    `json:"id"`
+	ID    int    `json:"id"`
 	Name  string `json:"name"`
 	Clock int    `json:"clock"`
 }
 
 func (o Object) String() string {
-	return fmt.Sprintf("Object(id: %d, name: %s, clock: %d)", o.Id, o.Name, o.Clock)
+	return fmt.Sprintf("Object(id: %d, name: %s, clock: %d)", o.ID, o.Name, o.Clock)
 }
 
 type TechWindow struct {
 	Id       int      `json:"id"`
-	IdObject int      `json:"id_object"`
-	Duration duration `json:"duration"`
+	IDObject int      `json:"id_object"`
+	Duration Duration `json:"duration"`
 }
 
 func (tw TechWindow) String() string {
-	return fmt.Sprintf("Tech window(id: %d, id_object: %d, duration: %s)", tw.Id, tw.IdObject, tw.Duration)
+	return fmt.Sprintf("Tech window(id: %d, id_object: %d, duration: %s)", tw.Id, tw.IDObject, tw.Duration)
 }
 
-type duration struct {
+type Duration struct {
 	Start string `json:"start"`
 	End   string `json:"end"`
 }
 
-func (d duration) String() string {
+const timeParseTemplate = "2006-01-02 15:04:05"
+
+func NewDuration(start string, end string) error {
+	startTime, err := time.Parse(timeParseTemplate, start)
+	if err != nil {
+		return fmt.Errorf("Parse error: %w", err)
+	}
+
+	endTime, err := time.Parse(timeParseTemplate, end)
+	if err != nil {
+		return fmt.Errorf("Parse error: %w", err)
+	}
+
+	if !startTime.Before(endTime) {
+		return errors.New("start must be before end")
+	}
+
+	return nil
+}
+
+func (this Duration) IsContains(d Duration) bool {
+	thisStart, err := time.Parse(timeParseTemplate, this.Start)
+	if err != nil {
+		return false
+	}
+
+	thisEnd, err := time.Parse(timeParseTemplate, this.End)
+	if err != nil {
+		return false
+	}
+
+	dStart, err := time.Parse(timeParseTemplate, d.Start)
+	if err != nil {
+		return false
+	}
+
+	dEnd, err := time.Parse(timeParseTemplate, d.End)
+	if err != nil {
+		return false
+	}
+
+	return (thisStart.Before(dStart) || thisStart.Equal(dStart)) && thisEnd.After(dEnd)
+}
+
+const dateAsStringLength = 19
+
+func (this Duration) IsOverlapped(d Duration) bool {
+	thisStart, err := time.Parse(timeParseTemplate, this.Start[:dateAsStringLength])
+	if err != nil {
+		return false
+	}
+
+	thisEnd, err := time.Parse(timeParseTemplate, this.End[:dateAsStringLength])
+	if err != nil {
+		return false
+	}
+
+	dStart, err := time.Parse(timeParseTemplate, d.Start[:dateAsStringLength])
+	if err != nil {
+		return false
+	}
+
+	dEnd, err := time.Parse(timeParseTemplate, d.End[:dateAsStringLength])
+	if err != nil {
+		return false
+	}
+
+	return !dEnd.Before(thisStart) && !(dStart.After(thisEnd) || dStart.Equal(thisEnd))
+}
+
+func (d Duration) GetDuration() time.Duration {
+	start, err := time.Parse(timeParseTemplate, d.Start)
+	if err != nil {
+		return time.Duration(0)
+	}
+
+	end, err := time.Parse(timeParseTemplate, d.End)
+	if err != nil {
+		return time.Duration(0)
+	}
+
+	return end.Sub(start)
+}
+
+func (d Duration) String() string {
 	return fmt.Sprintf("[%s, %s)", d.Start, d.End)
 }
 
@@ -129,7 +215,7 @@ func convertRowsToObjectSlice(rows *sql.Rows) []Object {
 
 	for rows.Next() {
 		o := Object{}
-		err := rows.Scan(&o.Id, &o.Name, &o.Clock)
+		err := rows.Scan(&o.ID, &o.Name, &o.Clock)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -147,7 +233,7 @@ func convertRowsToTechWindowSlice(rows *sql.Rows) []TechWindow {
 	for rows.Next() {
 		tw := TechWindow{}
 		durationAsBytes := []uint8{}
-		err := rows.Scan(&tw.Id, &tw.IdObject, &durationAsBytes)
+		err := rows.Scan(&tw.Id, &tw.IDObject, &durationAsBytes)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -179,8 +265,8 @@ func convertRowsToGroupedTechWindowSlice(rows *sql.Rows) []GroupedTechWindow {
 }
 
 // duration as string pattern: ["YYYY-MM-DD HH:MI:SS","YYYY-MM-DD HH:MI:SS")
-func ConvertStringToDuration(durationAsString string) duration {
+func ConvertStringToDuration(durationAsString string) Duration {
 	trimmedString := strings.Trim(durationAsString, "[\")")
 	splittedString := strings.Split(trimmedString, "\",\"")
-	return duration{Start: splittedString[0], End: splittedString[1]}
+	return Duration{Start: splittedString[0], End: splittedString[1]}
 }

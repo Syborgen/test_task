@@ -58,7 +58,7 @@ func (c *CreateCommand) Execute(message *tgbotapi.Message) error {
 	defer res.Body.Close()
 
 	chatWithUser := message.Chat
-	tghelper.SendTextMessage("Data created.", chatWithUser.ID, c.Bot)
+	tghelper.SendTextMessage("Data generated.", chatWithUser.ID, c.Bot)
 
 	return nil
 }

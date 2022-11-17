@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION generate(objects_count integer, windows_count integer
     BEGIN
         DELETE FROM objects WHERE true;
         FOR i IN 1..objects_count LOOP 
-            INSERT INTO objects(name, clock) VALUES('object ' || i, i%24);
+            INSERT INTO objects(name, clock) VALUES('object ' || i, i%27 - 12);
             
             FOR j IN 0..windows_count-1 LOOP
                 start_of_current_period := TIMESTAMP '2022-01-01 00:00:00' + period_with_one_tech_window_duration * j + (random() * (period_with_one_tech_window_duration - INTERVAL '23 hours') + INTERVAL '1 hour');

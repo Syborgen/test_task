@@ -2,13 +2,16 @@ package commands
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Command interface {
 	Execute(*tgbotapi.Message) error
-	SetExecutor(*tgbotapi.BotAPI)
+	SetBotApi(*tgbotapi.BotAPI)
 	SetChatToWrite(*tgbotapi.Chat)
 }
 
@@ -56,11 +59,59 @@ func (sc *StructureOfCommand) validateArgumentsCount(arguments []string) error {
 	return nil
 }
 
+const timeParseTemplate = "2006-01-02 15:04:05"
+
 func (sc *StructureOfCommand) validateArgumentsValues(arguments []string) error {
+	for i, expectedArgument := range sc.ExpectedArguments {
+		if strings.Contains(expectedArgument, "|") {
+			possibleValues := getPossibleValuesOfArgument(expectedArgument)
+
+			if !isOneOfPossibleValues(arguments[i], possibleValues) {
+				return fmt.Errorf("invalid value of argument №%d: possible values: %v",
+					i+1, possibleValues)
+			}
+		}
+
+		switch expectedArgument[:1] {
+		case "i":
+			_, err := strconv.Atoi(arguments[i])
+			if err != nil {
+				return fmt.Errorf("argument №%d must be number", i+1)
+			}
+
+		case "s":
+			return nil
+
+		case "d":
+			_, err := time.Parse(timeParseTemplate, arguments[i])
+			if err != nil {
+				return fmt.Errorf("date parsing error (argument №%d) [pattern: 'YYYY-MM-DD HH:MI:SS']: %w", i+1, err)
+			}
+		}
+	}
+
 	return nil
 }
 
-func (sc *StructureOfCommand) SetExecutor(bot *tgbotapi.BotAPI) {
+func isOneOfPossibleValues(argumentValue string, possibleValues []string) bool {
+	for _, possibleValue := range possibleValues {
+		if argumentValue == possibleValue {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getPossibleValuesOfArgument(expectedArgument string) []string {
+	possibleValuesInParentheses := expectedArgument[1:]
+	possibleValuesWithSeparator := strings.Trim(possibleValuesInParentheses, "()")
+	possibleValues := strings.Split(possibleValuesWithSeparator, "|")
+
+	return possibleValues
+}
+
+func (sc *StructureOfCommand) SetBotApi(bot *tgbotapi.BotAPI) {
 	sc.Bot = bot
 }
 

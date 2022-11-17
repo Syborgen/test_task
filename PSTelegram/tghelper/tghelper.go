@@ -57,26 +57,15 @@ func SendTextMessage(messageText string, to int64, bot *tgbotapi.BotAPI) error {
 	return nil
 }
 
-var datePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+var argumentPattern = regexp.MustCompile(`( |^)('.+?'|\S+)`)
 
 func ParseArguments(argumentsAsString string) []string {
-	if argumentsAsString == "" {
-		return []string{}
-	}
-
-	arguments := strings.Split(argumentsAsString, " ")
-	for i := 0; i < len(arguments); i++ {
-		if isDate(arguments[i]) {
-			arguments[i] += " " + arguments[i+1]
-			arguments = append(arguments[:i+1], arguments[i+2:]...)
-		}
+	arguments := argumentPattern.FindAllString(argumentsAsString, -1)
+	for i := range arguments {
+		arguments[i] = strings.Trim(arguments[i], " '")
 	}
 
 	return arguments
-}
-
-func isDate(str string) bool {
-	return datePattern.MatchString(str)
 }
 
 func min(a, b int) int {
