@@ -3,24 +3,15 @@ package datastructures
 import "fmt"
 
 type TechWindow struct {
-	Id       int      `json:"id"`
-	IdObject int      `json:"id_object"`
-	Duration Duration `json:"duration"`
+	Id       int       `json:"id"`
+	IdObject int       `json:"id_object"`
+	Duration TimeRange `json:"duration"`
 }
 
 const TechWindowRowFormat = "%5v|%15v|%45v"
 
 func (tw TechWindow) String() string {
-	return fmt.Sprintf(TechWindowRowFormat, tw.Id, tw.IdObject, tw.Duration)
-}
-
-type Duration struct {
-	Start string `json:"start"`
-	End   string `json:"end"`
-}
-
-func (d Duration) String() string {
-	return fmt.Sprintf("[%s, %s)", d.Start, d.End)
+	return fmt.Sprintf(TechWindowRowFormat, tw.Id, tw.IdObject, tw.Duration.String())
 }
 
 func CreateTechWindowTable(techWindows []TechWindow) string {

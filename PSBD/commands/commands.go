@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"PSBD/datastructures"
 	"PSBD/dbhelper"
 	"errors"
 	"fmt"
@@ -8,7 +9,7 @@ import (
 	"time"
 )
 
-func GetObjects() []dbhelper.Object {
+func GetObjects() []datastructures.Object {
 	return dbhelper.SelectObject(dbhelper.DB)
 }
 
@@ -26,14 +27,14 @@ func GetSortedWindowsQuery(sort string, start string, end string) []dbhelper.Gro
 
 func GetSortedWindowsProc(sort string, start string, end string) []dbhelper.GroupedTechWindow {
 	techWindows := dbhelper.SelectTechWindows(dbhelper.DB)
-	bounds := dbhelper.Duration{Start: start, End: end}
+	bounds := dbhelper.TimeRange{Start: start, End: end}
 	filteredTechWindows := filterTechWindowsByTimeBounds(techWindows, bounds)
 	groupedTechWindows := groupTechWindows(filteredTechWindows)
 	sortedTechWindows := sortGroupedTechWindows(groupedTechWindows, sort)
 	return sortedTechWindows
 }
 
-func filterTechWindowsByTimeBounds(techWindows []dbhelper.TechWindow, timeBound dbhelper.Duration) []dbhelper.TechWindow {
+func filterTechWindowsByTimeBounds(techWindows []dbhelper.TechWindow, timeBound dbhelper.TimeRange) []dbhelper.TechWindow {
 	result := []dbhelper.TechWindow{}
 	for _, techWindow := range techWindows {
 		if timeBound.IsContains(techWindow.Duration) {
@@ -126,7 +127,7 @@ func AddWindowProc(objectID int, start string, end string) error {
 
 	techWindows := dbhelper.SelectTechWindows(dbhelper.DB)
 	filteredTechWindows := filterTechWindowsByObjectID(techWindows, objectID)
-	bounds := dbhelper.Duration{Start: start, End: end}
+	bounds := dbhelper.TimeRange{Start: start, End: end}
 	if isDurationBoundsOverlapped(bounds, filteredTechWindows) {
 		return errors.New("duration overlapped")
 	}
@@ -139,7 +140,7 @@ func AddWindowProc(objectID int, start string, end string) error {
 	return nil
 }
 
-func isContainsObjectWithID(objectID int, objects []dbhelper.Object) bool {
+func isContainsObjectWithID(objectID int, objects []datastructures.Object) bool {
 	low := 0
 	top := len(objects) - 1
 
@@ -170,7 +171,7 @@ func filterTechWindowsByObjectID(techWindows []dbhelper.TechWindow, objectID int
 	return result
 }
 
-func isDurationBoundsOverlapped(bounds dbhelper.Duration, techWindows []dbhelper.TechWindow) bool {
+func isDurationBoundsOverlapped(bounds dbhelper.TimeRange, techWindows []dbhelper.TechWindow) bool {
 	for _, techWindow := range techWindows {
 		if bounds.IsOverlapped(techWindow.Duration) {
 			return true

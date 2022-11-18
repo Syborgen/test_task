@@ -33,7 +33,7 @@ func (c *ShowWindowSortCommand) Execute(message *tgbotapi.Message) error {
 		return fmt.Errorf("arguments validation error: %w", err)
 	}
 
-	req, err := c.createRequest(arguments)
+	req, err := c.createGetRequest(arguments)
 	if err != nil {
 		return fmt.Errorf("http reqest creation error: %w", err)
 	}
@@ -63,7 +63,7 @@ func (c *ShowWindowSortCommand) Execute(message *tgbotapi.Message) error {
 	return nil
 }
 
-func (c *ShowWindowSortCommand) createRequest(arguments []string) (*http.Request, error) {
+func (c *ShowWindowSortCommand) createGetRequest(arguments []string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", c.CommandURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http request creation error: %w", err)
@@ -71,8 +71,19 @@ func (c *ShowWindowSortCommand) createRequest(arguments []string) (*http.Request
 
 	query := req.URL.Query()
 	query.Add("sort", arguments[0])
-	query.Add("start", arguments[1])
-	query.Add("end", arguments[2])
+
+	timeBorders, err := datastructures.NewTimeRange(arguments[1], arguments[2])
+	if err != nil {
+		return nil, fmt.Errorf("time range creation error: %w", err)
+	}
+
+	err = timeBorders.ConvertToServerTime()
+	if err != nil {
+		return nil, fmt.Errorf("convert to server time error: %w", err)
+	}
+
+	query.Add("start", timeBorders.Start)
+	query.Add("end", timeBorders.End)
 	query.Add("action", arguments[3])
 
 	req.URL.RawQuery = query.Encode()

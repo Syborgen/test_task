@@ -27,6 +27,10 @@ func TestParseArguments(t *testing.T) {
 			input:    "one two '2022-12-05 11:43:66' '2022-12-05 11:43:66' 'incorrect s",
 			expected: []string{"one", "two", "2022-12-05 11:43:66", "2022-12-05 11:43:66", "incorrect", "s"},
 		},
+		{
+			input:    "one '' ддд",
+			expected: []string{"one", "", "ддд"},
+		},
 	}
 
 	for _, testCase := range testCases {

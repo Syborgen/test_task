@@ -1,6 +1,7 @@
 package commands
 
 import (
+	datastructures "PSTelegram/dataStructures"
 	"PSTelegram/tghelper"
 	"bytes"
 	"encoding/json"
@@ -34,7 +35,7 @@ func NewAddWindowCommand() *AddWindowCommand {
 	return &AddWindowCommand{
 		StructureOfCommand: StructureOfCommand{
 			CallName:          AddWindowCommandCallName,
-			ExpectedArguments: []string{"i", "d", "d", "s(query|proc)"},
+			ExpectedArguments: []string{"u", "d", "d", "s(query|proc)"},
 		},
 	}
 }
@@ -47,10 +48,21 @@ func (c *AddWindowCommand) Execute(message *tgbotapi.Message) error {
 	}
 
 	objectID, _ := strconv.Atoi(arguments[0])
+
+	duration, err := datastructures.NewTimeRange(arguments[1], arguments[2])
+	if err != nil {
+		return fmt.Errorf("time range creation error: %w", err)
+	}
+
+	err = duration.ConvertToServerTime()
+	if err != nil {
+		return fmt.Errorf("convert to server time error: %w", err)
+	}
+
 	commandArguments := AddWindowCommandArguments{
 		ObjectID: objectID,
-		Start:    arguments[1],
-		End:      arguments[2],
+		Start:    duration.Start,
+		End:      duration.End,
 		Action:   arguments[3],
 	}
 

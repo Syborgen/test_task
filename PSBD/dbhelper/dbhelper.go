@@ -1,8 +1,8 @@
 package dbhelper
 
 import (
+	"PSBD/datastructures"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -18,68 +18,40 @@ const (
 	dbname   = "postgres"
 )
 
-type Object struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Clock int    `json:"clock"`
-}
-
-func (o Object) String() string {
-	return fmt.Sprintf("Object(id: %d, name: %s, clock: %d)", o.ID, o.Name, o.Clock)
-}
-
 type TechWindow struct {
-	Id       int      `json:"id"`
-	IDObject int      `json:"id_object"`
-	Duration Duration `json:"duration"`
+	Id       int       `json:"id"`
+	IDObject int       `json:"id_object"`
+	Duration TimeRange `json:"duration"`
 }
 
 func (tw TechWindow) String() string {
 	return fmt.Sprintf("Tech window(id: %d, id_object: %d, duration: %s)", tw.Id, tw.IDObject, tw.Duration)
 }
 
-type Duration struct {
+type TimeRange struct {
 	Start string `json:"start"`
 	End   string `json:"end"`
 }
 
 const timeParseTemplate = "2006-01-02 15:04:05"
 
-func NewDuration(start string, end string) error {
-	startTime, err := time.Parse(timeParseTemplate, start)
-	if err != nil {
-		return fmt.Errorf("Parse error: %w", err)
-	}
-
-	endTime, err := time.Parse(timeParseTemplate, end)
-	if err != nil {
-		return fmt.Errorf("Parse error: %w", err)
-	}
-
-	if !startTime.Before(endTime) {
-		return errors.New("start must be before end")
-	}
-
-	return nil
-}
-
-func (this Duration) IsContains(d Duration) bool {
-	thisStart, err := time.Parse(timeParseTemplate, this.Start)
+func (thisTR TimeRange) IsContains(tr TimeRange) bool {
+	thisStart, err := time.Parse(timeParseTemplate, thisTR.Start)
 	if err != nil {
 		return false
 	}
 
-	thisEnd, err := time.Parse(timeParseTemplate, this.End)
+	thisEnd, err := time.Parse(timeParseTemplate, thisTR.End)
 	if err != nil {
 		return false
 	}
 
-	dStart, err := time.Parse(timeParseTemplate, d.Start)
+	dStart, err := time.Parse(timeParseTemplate, tr.Start)
 	if err != nil {
 		return false
 	}
 
-	dEnd, err := time.Parse(timeParseTemplate, d.End)
+	dEnd, err := time.Parse(timeParseTemplate, tr.End)
 	if err != nil {
 		return false
 	}
@@ -89,37 +61,38 @@ func (this Duration) IsContains(d Duration) bool {
 
 const dateAsStringLength = 19
 
-func (this Duration) IsOverlapped(d Duration) bool {
-	thisStart, err := time.Parse(timeParseTemplate, this.Start[:dateAsStringLength])
+func (thisTR TimeRange) IsOverlapped(tr TimeRange) bool {
+	thisStart, err := time.Parse(timeParseTemplate, thisTR.Start[:dateAsStringLength])
 	if err != nil {
 		return false
 	}
 
-	thisEnd, err := time.Parse(timeParseTemplate, this.End[:dateAsStringLength])
+	thisEnd, err := time.Parse(timeParseTemplate, thisTR.End[:dateAsStringLength])
 	if err != nil {
 		return false
 	}
 
-	dStart, err := time.Parse(timeParseTemplate, d.Start[:dateAsStringLength])
+	trStart, err := time.Parse(timeParseTemplate, tr.Start[:dateAsStringLength])
 	if err != nil {
 		return false
 	}
 
-	dEnd, err := time.Parse(timeParseTemplate, d.End[:dateAsStringLength])
+	trEnd, err := time.Parse(timeParseTemplate, tr.End[:dateAsStringLength])
 	if err != nil {
 		return false
 	}
 
-	return !dEnd.Before(thisStart) && !(dStart.After(thisEnd) || dStart.Equal(thisEnd))
+	return !(trEnd.Before(thisStart) || trEnd.Equal(thisStart)) &&
+		!(trStart.After(thisEnd) || trStart.Equal(thisEnd))
 }
 
-func (d Duration) GetDuration() time.Duration {
-	start, err := time.Parse(timeParseTemplate, d.Start)
+func (tr TimeRange) GetDuration() time.Duration {
+	start, err := time.Parse(timeParseTemplate, tr.Start)
 	if err != nil {
 		return time.Duration(0)
 	}
 
-	end, err := time.Parse(timeParseTemplate, d.End)
+	end, err := time.Parse(timeParseTemplate, tr.End)
 	if err != nil {
 		return time.Duration(0)
 	}
@@ -127,8 +100,8 @@ func (d Duration) GetDuration() time.Duration {
 	return end.Sub(start)
 }
 
-func (d Duration) String() string {
-	return fmt.Sprintf("[%s, %s)", d.Start, d.End)
+func (tr TimeRange) String() string {
+	return fmt.Sprintf("[%s, %s)", tr.Start, tr.End)
 }
 
 type GroupedTechWindow struct {
@@ -148,7 +121,7 @@ func ConnectToDb() *sql.DB {
 	return db
 }
 
-func SelectObject(db *sql.DB) []Object {
+func SelectObject(db *sql.DB) []datastructures.Object {
 	query := getSelectAllObjectsQuery()
 	rows, err := db.Query(query)
 	if err != nil {
@@ -210,11 +183,11 @@ func AddWindowQuery(db *sql.DB, objectID int, start string, end string) error {
 	return nil
 }
 
-func convertRowsToObjectSlice(rows *sql.Rows) []Object {
-	objects := []Object{}
+func convertRowsToObjectSlice(rows *sql.Rows) []datastructures.Object {
+	objects := []datastructures.Object{}
 
 	for rows.Next() {
-		o := Object{}
+		o := datastructures.Object{}
 		err := rows.Scan(&o.ID, &o.Name, &o.Clock)
 		if err != nil {
 			fmt.Println(err)
@@ -265,8 +238,8 @@ func convertRowsToGroupedTechWindowSlice(rows *sql.Rows) []GroupedTechWindow {
 }
 
 // duration as string pattern: ["YYYY-MM-DD HH:MI:SS","YYYY-MM-DD HH:MI:SS")
-func ConvertStringToDuration(durationAsString string) Duration {
+func ConvertStringToDuration(durationAsString string) TimeRange {
 	trimmedString := strings.Trim(durationAsString, "[\")")
 	splittedString := strings.Split(trimmedString, "\",\"")
-	return Duration{Start: splittedString[0], End: splittedString[1]}
+	return TimeRange{Start: splittedString[0], End: splittedString[1]}
 }

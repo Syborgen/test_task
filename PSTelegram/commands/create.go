@@ -26,7 +26,7 @@ func NewCreateCommand() *CreateCommand {
 	return &CreateCommand{
 		StructureOfCommand: StructureOfCommand{
 			CallName:          CreateCommandCallName,
-			ExpectedArguments: []string{"i", "i"},
+			ExpectedArguments: []string{"u", "u"},
 		},
 	}
 }
