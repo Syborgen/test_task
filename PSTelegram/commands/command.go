@@ -2,6 +2,7 @@ package commands
 
 import (
 	datastructures "PSTelegram/dataStructures"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,11 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+type ServerResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
 
 type Command interface {
 	Execute(*tgbotapi.Message) error
@@ -137,4 +143,15 @@ func (sc *StructureOfCommand) SetBotApi(bot *tgbotapi.BotAPI) {
 
 func (sc *StructureOfCommand) SetChatToWrite(chat *tgbotapi.Chat) {
 	sc.ChatToWrite = chat
+}
+
+func (sc *StructureOfCommand) checkError(body []byte) error {
+	var response ServerResponse
+	json.Unmarshal(body, &response)
+
+	if response.Status == "error" {
+		return fmt.Errorf("server error: %s", response.Message)
+	}
+
+	return nil
 }

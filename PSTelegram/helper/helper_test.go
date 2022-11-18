@@ -1,4 +1,4 @@
-package tghelper
+package helper
 
 import "testing"
 

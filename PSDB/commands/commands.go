@@ -9,33 +9,37 @@ import (
 	"time"
 )
 
-func GetObjects() []datastructures.Object {
+func GetObjects() ([]datastructures.Object, error) {
 	return dbhelper.SelectObject(dbhelper.DB)
 }
 
-func GetTechWindows() []dbhelper.GroupedTechWindow {
+func GetTechWindows() ([]datastructures.GroupedTechWindow, error) {
 	return dbhelper.SelectGroupedTechWindows(dbhelper.DB)
 }
 
-func GetTechWindowsAll() []dbhelper.TechWindow {
+func GetTechWindowsAll() ([]datastructures.TechWindow, error) {
 	return dbhelper.SelectTechWindows(dbhelper.DB)
 }
 
-func GetSortedWindowsQuery(sort string, start string, end string) []dbhelper.GroupedTechWindow {
+func GetSortedWindowsQuery(sort string, start string, end string) ([]datastructures.GroupedTechWindow, error) {
 	return dbhelper.SelectSortedTechWindowWithBounds(dbhelper.DB, start, end, sort)
 }
 
-func GetSortedWindowsProc(sort string, start string, end string) []dbhelper.GroupedTechWindow {
-	techWindows := dbhelper.SelectTechWindows(dbhelper.DB)
-	bounds := dbhelper.TimeRange{Start: start, End: end}
+func GetSortedWindowsProc(sort string, start string, end string) ([]datastructures.GroupedTechWindow, error) {
+	techWindows, err := dbhelper.SelectTechWindows(dbhelper.DB)
+	if err != nil {
+		return nil, fmt.Errorf("select tech window error: %w", err)
+	}
+	bounds := datastructures.TimeRange{Start: start, End: end}
 	filteredTechWindows := filterTechWindowsByTimeBounds(techWindows, bounds)
 	groupedTechWindows := groupTechWindows(filteredTechWindows)
 	sortedTechWindows := sortGroupedTechWindows(groupedTechWindows, sort)
-	return sortedTechWindows
+	return sortedTechWindows, nil
 }
 
-func filterTechWindowsByTimeBounds(techWindows []dbhelper.TechWindow, timeBound dbhelper.TimeRange) []dbhelper.TechWindow {
-	result := []dbhelper.TechWindow{}
+func filterTechWindowsByTimeBounds(techWindows []datastructures.TechWindow,
+	timeBound datastructures.TimeRange) []datastructures.TechWindow {
+	result := []datastructures.TechWindow{}
 	for _, techWindow := range techWindows {
 		if timeBound.IsContains(techWindow.Duration) {
 			result = append(result, techWindow)
@@ -45,17 +49,17 @@ func filterTechWindowsByTimeBounds(techWindows []dbhelper.TechWindow, timeBound 
 	return result
 }
 
-func groupTechWindows(techWindows []dbhelper.TechWindow) []dbhelper.GroupedTechWindow {
-	groupsByID := make(map[int][]dbhelper.TechWindow)
+func groupTechWindows(techWindows []datastructures.TechWindow) []datastructures.GroupedTechWindow {
+	groupsByID := make(map[int][]datastructures.TechWindow)
 	for _, techWindow := range techWindows {
 		groupsByID[techWindow.IDObject] = append(groupsByID[techWindow.IDObject], techWindow)
 	}
 
-	result := []dbhelper.GroupedTechWindow{}
+	result := []datastructures.GroupedTechWindow{}
 	for idObject, groupByID := range groupsByID {
 		count := len(groupByID)
 		averageDuration := calculateAverageDuration(groupByID)
-		result = append(result, dbhelper.GroupedTechWindow{
+		result = append(result, datastructures.GroupedTechWindow{
 			IDObject:        idObject,
 			WindowsCount:    count,
 			AverageDuration: averageDuration.String(),
@@ -65,7 +69,7 @@ func groupTechWindows(techWindows []dbhelper.TechWindow) []dbhelper.GroupedTechW
 	return result
 }
 
-func calculateAverageDuration(groupByID []dbhelper.TechWindow) time.Duration {
+func calculateAverageDuration(groupByID []datastructures.TechWindow) time.Duration {
 	sumOfDurations := time.Duration(0)
 	for _, techWindow := range groupByID {
 		sumOfDurations += techWindow.Duration.GetDuration()
@@ -75,7 +79,8 @@ func calculateAverageDuration(groupByID []dbhelper.TechWindow) time.Duration {
 	return averageDuration
 }
 
-func sortGroupedTechWindows(groupedTechWindows []dbhelper.GroupedTechWindow, sortOrder string) []dbhelper.GroupedTechWindow {
+func sortGroupedTechWindows(groupedTechWindows []datastructures.GroupedTechWindow,
+	sortOrder string) []datastructures.GroupedTechWindow {
 	switch sortOrder {
 	case "asc":
 		sort.Slice(groupedTechWindows, func(i int, j int) bool {
@@ -91,6 +96,7 @@ func sortGroupedTechWindows(groupedTechWindows []dbhelper.GroupedTechWindow, sor
 
 			return durationForI < durationForJ
 		})
+
 	case "desc":
 		sort.Slice(groupedTechWindows, func(i int, j int) bool {
 			durationForI, err := time.ParseDuration(groupedTechWindows[i].AverageDuration)
@@ -105,6 +111,7 @@ func sortGroupedTechWindows(groupedTechWindows []dbhelper.GroupedTechWindow, sor
 
 			return durationForI > durationForJ
 		})
+
 	}
 
 	return groupedTechWindows
@@ -120,19 +127,27 @@ func AddWindowQuery(objectID int, start string, end string) error {
 }
 
 func AddWindowProc(objectID int, start string, end string) error {
-	objects := dbhelper.SelectObject(dbhelper.DB)
+	objects, err := dbhelper.SelectObject(dbhelper.DB)
+	if err != nil {
+		return fmt.Errorf("select objects error: %w", err)
+	}
+
 	if !isContainsObjectWithID(objectID, objects) {
 		return errors.New("object with this id is not exists")
 	}
 
-	techWindows := dbhelper.SelectTechWindows(dbhelper.DB)
+	techWindows, err := dbhelper.SelectTechWindows(dbhelper.DB)
+	if err != nil {
+		return fmt.Errorf("select techt windows error: %w", err)
+	}
+
 	filteredTechWindows := filterTechWindowsByObjectID(techWindows, objectID)
-	bounds := dbhelper.TimeRange{Start: start, End: end}
+	bounds := datastructures.TimeRange{Start: start, End: end}
 	if isDurationBoundsOverlapped(bounds, filteredTechWindows) {
 		return errors.New("duration overlapped")
 	}
 
-	err := dbhelper.AddWindowQuery(dbhelper.DB, objectID, start, end)
+	err = dbhelper.AddWindowQuery(dbhelper.DB, objectID, start, end)
 	if err != nil {
 		return fmt.Errorf("DATABASE add window error: %w", err)
 	}
@@ -160,8 +175,8 @@ func isContainsObjectWithID(objectID int, objects []datastructures.Object) bool 
 	return true
 }
 
-func filterTechWindowsByObjectID(techWindows []dbhelper.TechWindow, objectID int) []dbhelper.TechWindow {
-	result := []dbhelper.TechWindow{}
+func filterTechWindowsByObjectID(techWindows []datastructures.TechWindow, objectID int) []datastructures.TechWindow {
+	result := []datastructures.TechWindow{}
 	for _, techWindow := range techWindows {
 		if techWindow.IDObject == objectID {
 			result = append(result, techWindow)
@@ -171,7 +186,7 @@ func filterTechWindowsByObjectID(techWindows []dbhelper.TechWindow, objectID int
 	return result
 }
 
-func isDurationBoundsOverlapped(bounds dbhelper.TimeRange, techWindows []dbhelper.TechWindow) bool {
+func isDurationBoundsOverlapped(bounds datastructures.TimeRange, techWindows []datastructures.TechWindow) bool {
 	for _, techWindow := range techWindows {
 		if bounds.IsOverlapped(techWindow.Duration) {
 			return true
@@ -181,6 +196,11 @@ func isDurationBoundsOverlapped(bounds dbhelper.TimeRange, techWindows []dbhelpe
 	return false
 }
 
-func Create(objectsCount int, windowsCount int) {
-	dbhelper.CallGenerateFunction(dbhelper.DB, objectsCount, windowsCount)
+func Create(objectsCount int, windowsCount int) error {
+	err := dbhelper.CallGenerateFunction(dbhelper.DB, objectsCount, windowsCount)
+	if err != nil {
+		return fmt.Errorf("call generate function error: %w", err)
+	}
+
+	return nil
 }

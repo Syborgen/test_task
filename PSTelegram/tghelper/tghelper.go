@@ -1,9 +1,8 @@
 package tghelper
 
 import (
+	"PSTelegram/helper"
 	"fmt"
-	"regexp"
-	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -42,7 +41,8 @@ func SendTextMessage(messageText string, to int64, bot *tgbotapi.BotAPI) error {
 	maxMessageSize := 4096
 
 	for i := 0; i < len(messageText); i += maxMessageSize {
-		message := tgbotapi.NewMessage(to, messageText[i:i+min(maxMessageSize, len(messageText)-i)])
+		message := tgbotapi.NewMessage(
+			to, messageText[i:i+helper.Min(maxMessageSize, len(messageText)-i)])
 
 		if _, err := bot.Send(message); err != nil {
 			chat, _ := FindChatByID(to, bot)
@@ -55,23 +55,4 @@ func SendTextMessage(messageText string, to int64, bot *tgbotapi.BotAPI) error {
 	}
 
 	return nil
-}
-
-var argumentPattern = regexp.MustCompile(`( |^)('.+?'|\S+)`)
-
-func ParseArguments(argumentsAsString string) []string {
-	arguments := argumentPattern.FindAllString(argumentsAsString, -1)
-	for i := range arguments {
-		arguments[i] = strings.Trim(arguments[i], " '")
-	}
-
-	return arguments
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
 }

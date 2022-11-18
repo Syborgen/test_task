@@ -2,13 +2,13 @@ package datastructures
 
 import "fmt"
 
+const TechWindowRowFormat = "%5v|%15v|%45v"
+
 type TechWindow struct {
 	Id       int       `json:"id"`
 	IdObject int       `json:"id_object"`
 	Duration TimeRange `json:"duration"`
 }
-
-const TechWindowRowFormat = "%5v|%15v|%45v"
 
 func (tw TechWindow) String() string {
 	return fmt.Sprintf(TechWindowRowFormat, tw.Id, tw.IdObject, tw.Duration.String())

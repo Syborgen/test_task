@@ -2,6 +2,7 @@ package commands
 
 import (
 	datastructures "PSTelegram/dataStructures"
+	"PSTelegram/helper"
 	"PSTelegram/tghelper"
 	"encoding/json"
 	"fmt"
@@ -11,11 +12,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+const ShowWindowAllCommandCallName = "show_window_all"
+
 type ShowWindowAllCommand struct {
 	StructureOfCommand
 }
-
-const ShowWindowAllCommandCallName = "show_window_all"
 
 func NewShowWindowAllCommand() *ShowWindowAllCommand {
 	return &ShowWindowAllCommand{
@@ -26,7 +27,7 @@ func NewShowWindowAllCommand() *ShowWindowAllCommand {
 }
 
 func (c *ShowWindowAllCommand) Execute(message *tgbotapi.Message) error {
-	arguments := tghelper.ParseArguments(message.CommandArguments())
+	arguments := helper.ParseArguments(message.CommandArguments())
 	err := c.ValidateArguments(arguments)
 	if err != nil {
 		return fmt.Errorf("arguments validation error: %w", err)
@@ -49,15 +50,42 @@ func (c *ShowWindowAllCommand) Execute(message *tgbotapi.Message) error {
 		return fmt.Errorf("read request body error: %w", err)
 	}
 
-	var TechWindows []datastructures.TechWindow
-	json.Unmarshal(body, &TechWindows)
+	err = c.checkError(body)
+	if err != nil {
+		return err
+	}
 
-	chatWithUser := message.Chat
+	err = c.showResult(body, message.Chat)
+	if err != nil {
+		return err
+	}
 
-	formattedTechWindowsTable := datastructures.CreateTechWindowTable(TechWindows)
+	return nil
+}
+
+func (c *ShowWindowAllCommand) showResult(body []byte, chatWithUser *tgbotapi.Chat) error {
+	var techWindows []datastructures.TechWindow
+	err := json.Unmarshal(body, &techWindows)
+	if err != nil {
+		return fmt.Errorf("unmarshal error: %w", err)
+	}
+
+	if len(techWindows) == 0 {
+		tghelper.SendTextMessage("There is no tech windows in database.", c.ChatToWrite.ID, c.Bot)
+		return nil
+	}
+
+	for i := range techWindows {
+		err := techWindows[i].Duration.ConvertToLocalTime()
+		if err != nil {
+			return fmt.Errorf("time convertation error: %w", err)
+		}
+	}
+
+	formattedTechWindowsTable := datastructures.CreateTechWindowTable(techWindows)
 	err = tghelper.SendTextMessage(formattedTechWindowsTable, c.ChatToWrite.ID, c.Bot)
 	if err != nil {
-		tghelper.SendTextMessage("Send message error: "+err.Error(), chatWithUser.ID, c.Bot)
+		return fmt.Errorf("send message error: %w", err)
 	}
 
 	messageText := fmt.Sprintf("Technical windows table printed in chat @%s", c.ChatToWrite.UserName)

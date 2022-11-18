@@ -4,10 +4,6 @@ import (
 	"testing"
 )
 
-func TestValidateArgumentsCounts(t *testing.T) {
-
-}
-
 func TestValidateArgumentsValues(t *testing.T) {
 	testCases := []struct {
 		arguments         []string

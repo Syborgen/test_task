@@ -2,6 +2,7 @@ package commands
 
 import (
 	datastructures "PSTelegram/dataStructures"
+	"PSTelegram/helper"
 	"PSTelegram/tghelper"
 	"encoding/json"
 	"fmt"
@@ -11,11 +12,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+const ShowWindowSortCommandCallName = "show_window_sort"
+
 type ShowWindowSortCommand struct {
 	StructureOfCommand
 }
-
-const ShowWindowSortCommandCallName = "show_window_sort"
 
 func NewShowWindowSortCommand() *ShowWindowSortCommand {
 	return &ShowWindowSortCommand{
@@ -27,13 +28,13 @@ func NewShowWindowSortCommand() *ShowWindowSortCommand {
 }
 
 func (c *ShowWindowSortCommand) Execute(message *tgbotapi.Message) error {
-	arguments := tghelper.ParseArguments(message.CommandArguments())
+	arguments := helper.ParseArguments(message.CommandArguments())
 	err := c.ValidateArguments(arguments)
 	if err != nil {
 		return fmt.Errorf("arguments validation error: %w", err)
 	}
 
-	req, err := c.createGetRequest(arguments)
+	req, err := c.createGetRequestWithArguments(arguments)
 	if err != nil {
 		return fmt.Errorf("http reqest creation error: %w", err)
 	}
@@ -50,20 +51,45 @@ func (c *ShowWindowSortCommand) Execute(message *tgbotapi.Message) error {
 		return fmt.Errorf("read request body error: %w", err)
 	}
 
+	err = c.checkError(body)
+	if err != nil {
+		return err
+	}
+
+	err = c.showResult(body, message.Chat)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *ShowWindowSortCommand) showResult(body []byte, chatWithUser *tgbotapi.Chat) error {
 	var groupedTechWindows []datastructures.GroupedTechWindow
-	json.Unmarshal(body, &groupedTechWindows)
+	err := json.Unmarshal(body, &groupedTechWindows)
+	if err != nil {
+		return fmt.Errorf("unmarshal error: %w", err)
+	}
+
+	if len(groupedTechWindows) == 0 {
+		tghelper.SendTextMessage("There is no tech windows in database.", c.ChatToWrite.ID, c.Bot)
+		return nil
+	}
 
 	formattedTechWindowsTable := datastructures.CreateGroupedTechWindowTable(groupedTechWindows)
-	tghelper.SendTextMessage(formattedTechWindowsTable, c.ChatToWrite.ID, c.Bot)
+	err = tghelper.SendTextMessage(formattedTechWindowsTable, c.ChatToWrite.ID, c.Bot)
+	if err != nil {
+		return fmt.Errorf("send message error: %w", err)
+	}
 
-	chatWithUser := message.Chat
 	messageText := fmt.Sprintf("Sorted technical windows table printed in chat @%s", c.ChatToWrite.UserName)
 	tghelper.SendTextMessage(messageText, chatWithUser.ID, c.Bot)
 
 	return nil
 }
 
-func (c *ShowWindowSortCommand) createGetRequest(arguments []string) (*http.Request, error) {
+func (c *ShowWindowSortCommand) createGetRequestWithArguments(
+	arguments []string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", c.CommandURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http request creation error: %w", err)

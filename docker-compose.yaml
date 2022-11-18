@@ -17,7 +17,8 @@ services:
     image: docker-pstelegram
     build: PSTelegram/
     environment:
-      TZ: "Europe/Moscow"
+      TZ: ""
+      # TZ: "Europe/Moscow"
     depends_on:
       - PSDB
     ports:
@@ -25,7 +26,7 @@ services:
 
   PSDB:
     image: docker-psdb
-    build: PSBD/
+    build: PSDB/
     depends_on: 
     - postgres
     ports:

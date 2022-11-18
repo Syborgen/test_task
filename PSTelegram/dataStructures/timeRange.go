@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const serverLocationName = "Europe/Moscow"
+
+const TimeFormat = "2006-01-02 15:04:05"
+
 type TimeRange struct {
 	Start string `json:"start"`
 	End   string `json:"end"`
@@ -58,7 +62,6 @@ func (tr *TimeRange) ConvertToServerTime() error {
 		return fmt.Errorf("load location error: %w", err)
 	}
 
-	fmt.Println(time.Now().Location())
 	tr.Start, err = convertTimeFromLocationToLocation(tr.Start, time.Now().Location(), serverLocation)
 	if err != nil {
 		return fmt.Errorf("convert 'start' to server time error: %w", err)
@@ -71,10 +74,6 @@ func (tr *TimeRange) ConvertToServerTime() error {
 
 	return nil
 }
-
-const serverLocationName = "Europe/Moscow"
-
-const TimeFormat = "2006-01-02 15:04:05"
 
 func convertTimeFromLocationToLocation(timeAsString string, from *time.Location, to *time.Location) (string, error) {
 	timeToConvert, err := time.ParseInLocation(TimeFormat, timeAsString, from)

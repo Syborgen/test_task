@@ -2,6 +2,7 @@ package commands
 
 import (
 	datastructures "PSTelegram/dataStructures"
+	"PSTelegram/helper"
 	"PSTelegram/tghelper"
 	"encoding/json"
 	"fmt"
@@ -11,11 +12,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+const ShowObjectCommandCallName = "show_object"
+
 type ShowObjectCommand struct {
 	StructureOfCommand
 }
-
-const ShowObjectCommandCallName = "show_object"
 
 func NewShowObjectCommand() *ShowObjectCommand {
 	return &ShowObjectCommand{
@@ -26,7 +27,7 @@ func NewShowObjectCommand() *ShowObjectCommand {
 }
 
 func (c *ShowObjectCommand) Execute(message *tgbotapi.Message) error {
-	arguments := tghelper.ParseArguments(message.CommandArguments())
+	arguments := helper.ParseArguments(message.CommandArguments())
 	err := c.ValidateArguments(arguments)
 	if err != nil {
 		return fmt.Errorf("arguments validation error: %w", err)
@@ -49,8 +50,30 @@ func (c *ShowObjectCommand) Execute(message *tgbotapi.Message) error {
 		return fmt.Errorf("read request body error: %w", err)
 	}
 
+	err = c.checkError(body)
+	if err != nil {
+		return err
+	}
+
+	err = c.showResult(body, message.Chat)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *ShowObjectCommand) showResult(body []byte, chatWithUser *tgbotapi.Chat) error {
 	var objects []datastructures.Object
-	json.Unmarshal(body, &objects)
+	err := json.Unmarshal(body, &objects)
+	if err != nil {
+		return fmt.Errorf("unmarshal body error: %w", err)
+	}
+
+	if len(objects) == 0 {
+		tghelper.SendTextMessage("There is no objects in database.", c.ChatToWrite.ID, c.Bot)
+		return nil
+	}
 
 	formattedObjectsTable := datastructures.CreateObjectTable(objects)
 	err = tghelper.SendTextMessage(formattedObjectsTable, c.ChatToWrite.ID, c.Bot)
@@ -58,7 +81,6 @@ func (c *ShowObjectCommand) Execute(message *tgbotapi.Message) error {
 		return fmt.Errorf("send message error: %w", err)
 	}
 
-	chatWithUser := message.Chat
 	messageText := fmt.Sprintf("Objets table printed in chat @%s", c.ChatToWrite.UserName)
 	tghelper.SendTextMessage(messageText, chatWithUser.ID, c.Bot)
 

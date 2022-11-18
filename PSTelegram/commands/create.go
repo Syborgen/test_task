@@ -1,15 +1,19 @@
 package commands
 
 import (
+	"PSTelegram/helper"
 	"PSTelegram/tghelper"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+const CreateCommandCallName = "create"
 
 type CreateCommandArguments struct {
 	Objects int `json:"objects"`
@@ -19,8 +23,6 @@ type CreateCommandArguments struct {
 type CreateCommand struct {
 	StructureOfCommand
 }
-
-const CreateCommandCallName = "create"
 
 func NewCreateCommand() *CreateCommand {
 	return &CreateCommand{
@@ -32,7 +34,7 @@ func NewCreateCommand() *CreateCommand {
 }
 
 func (c *CreateCommand) Execute(message *tgbotapi.Message) error {
-	arguments := tghelper.ParseArguments(message.CommandArguments())
+	arguments := helper.ParseArguments(message.CommandArguments())
 	err := c.ValidateArguments(arguments)
 	if err != nil {
 		return fmt.Errorf("arguments validation error: %w", err)
@@ -56,6 +58,16 @@ func (c *CreateCommand) Execute(message *tgbotapi.Message) error {
 	}
 
 	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("read request body error: %w", err)
+	}
+
+	err = c.checkError(body)
+	if err != nil {
+		return err
+	}
 
 	chatWithUser := message.Chat
 	tghelper.SendTextMessage("Data generated.", chatWithUser.ID, c.Bot)

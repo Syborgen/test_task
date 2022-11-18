@@ -3,6 +3,7 @@ package main
 import (
 	"PSBD/commands"
 	"PSBD/dbhelper"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -10,7 +11,13 @@ import (
 
 // sudo docker build --tag docker-psdb .
 func main() {
-	dbhelper.DB = dbhelper.ConnectToDb()
+	var err error
+	dbhelper.DB, err = dbhelper.ConnectToDb()
+	if err != nil {
+		fmt.Println("Connect to db error:", err)
+		return
+	}
+
 	defer dbhelper.DB.Close()
 
 	router := gin.Default()
@@ -22,5 +29,8 @@ func main() {
 	router.POST("/add_window", commands.AddWindowHandler)
 	router.POST("/create", commands.CreateHandler)
 
-	router.Run("0.0.0.0:8080")
+	err = router.Run("0.0.0.0:8080")
+	if err != nil {
+		fmt.Println("Server start error:", err)
+	}
 }
